@@ -1,7 +1,10 @@
 const express = require("express");
+const cors = require("cors");
 const db = require("./db");
 
 const app = express();
+
+app.use(cors());
 
 app.get("/", (req, res) => {
   res.send("Forward Bot Admin API Running");
@@ -29,6 +32,27 @@ app.get("/stats", (req, res) => {
       });
     });
   });
+});
+
+app.get("/messages-per-day", (req, res) => {
+
+    const query = `
+        SELECT DATE(created_at) as date, COUNT(*) as count
+        FROM message_map
+        GROUP BY DATE(created_at)
+        ORDER BY DATE(created_at)
+    `;
+
+    db.query(query, (err, result) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send("Database error");
+            return;
+        }
+
+        res.json(result);
+    });
+
 });
 
 app.listen(5000, () => {
