@@ -124,6 +124,24 @@ app.get("/user-growth", (req, res) => {
 
 });
 
+
+app.get("/users", (req, res) => {
+  const query = `
+    SELECT id, user_id, first_name, username, created_at
+    FROM users
+    ORDER BY created_at DESC
+  `;
+
+  db.query(query, (err, result) => {
+    if (err) {
+      console.error(err);
+      res.status(500).json({ error: "Database error" });
+      return;
+    }
+    res.json(result);
+  });
+});
+
 app.listen(5000, () => {
   console.log("Server running on port 5000");
 });
