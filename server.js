@@ -142,6 +142,54 @@ app.get("/users", (req, res) => {
   });
 });
 
+
+
+
+// Get all rules
+app.get("/rules", (req, res) => {
+  const query = `
+    SELECT id, user_id, source_chat_id, destination_chat_ids,
+           is_active, filter_types, blacklist_keywords, delay_seconds,
+           whitelist_keywords, replace_pairs, header_text, footer_text
+    FROM rules
+    ORDER BY id DESC
+  `;
+  db.query(query, (err, result) => {
+    if (err) { console.error(err); res.status(500).json({ error: "Database error" }); return; }
+    res.json(result);
+  });
+});
+
+// Toggle is_active for a rule
+app.patch("/rules/:id/toggle", (req, res) => {
+  const { id } = req.params;
+  db.query("SELECT is_active FROM rules WHERE id = ?", [id], (err, result) => {
+    if (err || result.length === 0) { res.status(404).json({ error: "Rule not found" }); return; }
+    const newStatus = result[0].is_active ? 0 : 1;
+    db.query("UPDATE rules SET is_active = ? WHERE id = ?", [newStatus, id], (err2) => {
+      if (err2) { res.status(500).json({ error: "Database error" }); return; }
+      res.json({ id, is_active: newStatus });
+    });
+  });
+});
+
+// Filter types breakdown for dashboard chart
+app.get("/filter-types-breakdown", (req, res) => {
+  const query = `SELECT filter_types FROM rules WHERE filter_types IS NOT NULL AND filter_types != ''`;
+  db.query(query, (err, result) => {
+    if (err) { res.status(500).json({ error: "Database error" }); return; }
+    const counts = {};
+    result.forEach(row => {
+      (row.filter_types || "").split(",").forEach(type => {
+        const t = type.trim();
+        if (t) counts[t] = (counts[t] || 0) + 1;
+      });
+    });
+    const data = Object.entries(counts).map(([name, value]) => ({ name, value }));
+    res.json(data);
+  });
+});
+
 app.listen(5000, () => {
   console.log("Server running on port 5000");
 });
